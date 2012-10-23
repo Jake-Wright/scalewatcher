@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import serial
 from time import sleep
 import time
@@ -15,7 +14,7 @@ gobject.threads_init()
 
 global RATE, LOCATIONS
 RATE=9600
-LOCATIONS=['/dev/ttyACM0','/dev/ttyUSB0','/dev/ttyUSB1','/dev/ttyUSB2','/dev/ttyUSB3',  
+LOCATIONS=['/dev/ttyACM0','/dev/ttyUSB0','/dev/ttyUSB1','/dev/ttyUSB2','/dev/ttyUSB3',
 '/dev/ttyS0','/dev/ttyS2','/dev/ttyACM1','/dev/ttyS3', '/dev/ttyS4']
 gittest=''
 
@@ -40,26 +39,29 @@ class guiFramework(object):
         #This block of code was intended for linear regression testing
         """
         xdata=range(20)
-        ydata=xdata
+        ydata=[]
+	for data in xdata:
+	   ydata.append(data*2)
         for i in range(20):
             self.line.update(xdata[i],ydata[i])
-        self.wetLabel.set_text(str(self.line.slope))
-        self.correlationLabel.set_text(str(self.line.rr))
-        """
+            self.wetLabel.set_text(str(self.line.slope))
+            self.correlationLabel.set_text(str(self.line.rr))
+	"""
+
         
         
     def initializeLogger(self):
             """Sets up logging"""
             self.logger=logging.getLogger('data_logger' + str(self.filenumber))
             self.hdlr = logging.FileHandler(self.filename + '-' +str(self.filenumber) + '.txt')
-            self.formatter = logging.Formatter('%(message)s')  
+            self.formatter = logging.Formatter('%(message)s')
             self.hdlr.setFormatter(self.formatter)
             self.logger.addHandler(self.hdlr)
-            self.logger.setLevel(logging.WARNING) 
-            self.basetime=float(time.time()) 
+            self.logger.setLevel(logging.WARNING)
+            self.basetime=float(time.time())
     
     def delete_event(self, widget, data=None):
-        try: 
+        try:
             self.Serial.close()
             print "Closing serial connection..."
         except:
@@ -68,7 +70,7 @@ class guiFramework(object):
         gtk.main_quit()
         
     def guiInitialization(self):
-        """Populates GUI window with buttons, graph, etc"""        
+        """Populates GUI window with buttons, graph, etc"""
         self.bigHbox=gtk.HBox(False, 2)
         self.window.add(self.bigHbox)
         self.graphLogBox=gtk.VBox(True, 2)
@@ -84,7 +86,7 @@ class guiFramework(object):
         self.serialDisconnectButton=gtk.Button('Disconnect from Scale')
         self.serialDisconnectButton.connect('clicked', self.serialDisconnect, '')
         """self.saveDataButton=gtk.Button('Save Data')
-        self.saveDataButton.connect('clicked', self.saveData, None)"""
+self.saveDataButton.connect('clicked', self.saveData, None)"""
         self.serialbox.pack_start(self.serialConnectButton, False, False, 0)
         self.serialbox.pack_start(self.serialDisconnectButton, False, False, 0)
         """self.serialbox.pack_start(self.saveDataButton, False, False, 0)"""
@@ -163,8 +165,8 @@ class guiFramework(object):
             print 'Port never connected'
             
     """def saveData(self, widget, data):
-        logger.setlevel(logging.INFO)
-        logger.info(self.details)"""
+logger.setlevel(logging.INFO)
+logger.info(self.details)"""
     
     def getDetailText(self, widget, data):
         self.details=self.detailEntry.get_text()
@@ -194,7 +196,7 @@ class guiFramework(object):
         self.loggingLabel.set_text("Logging")
     
     def stopLogging(self, widget, data):
-        self.logger.info('End segment') 
+        self.logger.info('End segment')
         self.logger.setLevel(logging.WARNING)
         self.logging=False
         self.loggingLabel.set_text("Not Logging")
@@ -217,7 +219,7 @@ class linearRegressor(object):
         self.intercept=0.0
         self.xsum=0
         self.ysum=0
-        self.min=2
+        self.min=3
         self.max=40
         self.SSE=0.
         self.TSS=0.
@@ -237,29 +239,29 @@ class linearRegressor(object):
                 self.ydata.pop()
                 self.xdata.reverse()
                 self.ydata.reverse()
+		self.N-=1
             
         
     def regress(self):
         if sum(self.xdata)*sum(self.ydata) != 0:
-            test=5
-        self.N=len(self.ydata)
-        self.xsum=sum(self.xdata)
-        self.ysum=sum(self.ydata)
-        self.xysum=0.0
-        self.xxsum=0.0
-        self.yysum=0.0
-        for i in range(self.N):
-            self.xysum+=self.xdata[i]*self.ydata[i]
-            self.xxsum+=self.xdata[i]**2
-            self.yysum+=self.ydata[i]**2
+            self.N=len(self.ydata)
+            self.xsum=sum(self.xdata)
+            self.ysum=sum(self.ydata)
+            self.xysum=0.0
+            self.xxsum=0.0
+            self.yysum=0.0
+            for i in range(self.N):
+                self.xysum+=self.xdata[i]*self.ydata[i]
+                self.xxsum+=self.xdata[i]**2
+                self.yysum+=self.ydata[i]**2
         
-        self.intercept=(self.ysum*self.xxsum-self.xsum*self.xysum)/(self.N*self.xxsum-self.xsum**2)
-        self.slope=(self.N*self.xysum-self.xsum*self.ysum)/(self.N*self.xxsum-self.xsum**2)
+            self.intercept=(self.ysum*self.xxsum-self.xsum*self.xysum)/(self.N*self.xxsum-self.xsum**2)
+            self.slope=(self.N*self.xysum-self.xsum*self.ysum)/(self.N*self.xxsum-self.xsum**2)
     
     def QC(self):
         self.TSS=0.0
         self.SSE=0.0
-        average=self.ysum/self.N
+        average=self.ysum/(self.N)
         for i in range(self.N):
             Yi=(self.xdata[i]*self.slope+self.intercept)
             self.TSS+=(average-self.ydata[i])**2
@@ -278,12 +280,12 @@ class gtkThread(threading.Thread):
         
     def update_label(self, weight):
         self.label.set_text(weight)
-        gui.line.update(self.average, self.elapsed)
+        gui.line.update(self.elapsed, self.average)
         gui.line.QC()
         slope=gui.line.slope
         rr=gui.line.rr
         gui.getWidthText('','')
-        slope=slope*60./200.*gui.width*4882.26
+        slope=slope*60./200.*gui.width/12*4882.26
         gui.wetLabel.set_text(str(slope))
         gui.correlationLabel.set_text(str(rr))
         return False
@@ -306,6 +308,7 @@ class gtkThread(threading.Thread):
                         try:
                             m=re.match(regex, string)
                             weight=float(m.group())
+                            break
                         except:
                             char=string
                 average+=weight/20.0
