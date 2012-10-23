@@ -16,7 +16,7 @@ gobject.threads_init()
 global RATE, LOCATIONS
 RATE=9600
 LOCATIONS=['/dev/ttyACM0','/dev/ttyUSB0','/dev/ttyUSB1','/dev/ttyUSB2','/dev/ttyUSB3',  
-'/dev/ttyS0','/dev/ttyS2','/dev/ttyACM1','/dev/ttyS3'] 
+'/dev/ttyS0','/dev/ttyS2','/dev/ttyACM1','/dev/ttyS3', '/dev/ttyS4']
 
 class guiFramework(object):
     def __init__(self):
