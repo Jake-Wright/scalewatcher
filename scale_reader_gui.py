@@ -35,6 +35,18 @@ class guiFramework(object):
         self.filenumber=0
         self.initializeLogger()
         self.logging=False
+        self.width=12
+        self.line=linearRegressor([],[])
+        #This block of code was intended for linear regression testing
+        """
+        xdata=range(20)
+        ydata=xdata
+        for i in range(20):
+            self.line.update(xdata[i],ydata[i])
+        self.wetLabel.set_text(str(self.line.slope))
+        self.correlationLabel.set_text(str(self.line.rr))
+        """
+        
         
     def initializeLogger(self):
             """Sets up logging"""
@@ -112,6 +124,22 @@ class guiFramework(object):
         self.dashboardbox.pack_start(self.weightFrame, False, False, 0)
         self.dashboardbox.pack_start(self.loggingFrame, False, False, 0)
         
+        self.regressorbox=gtk.HBox(True, 2)
+        self.wetFrame=gtk.Frame('Current Coatweight')
+        self.wetLabel=gtk.Label('Not enough data yet...')
+        self.wetFrame.add(self.wetLabel)
+        self.widthFrame=gtk.Frame('Media Width (in)')
+        self.widthEntry=gtk.Entry(2)
+        self.widthEntry.connect('activate', self.getWidthText, '')
+        self.widthFrame.add(self.widthEntry)
+        self.correlationLabel=gtk.Label('Not enough data yet...')
+        self.correlationFrame=gtk.Frame('R Squared')
+        self.correlationFrame.add(self.correlationLabel)
+        self.graphLogBox.pack_start(self.regressorbox, False, False, 0)
+        self.regressorbox.pack_start(self.wetFrame, False, False, 0)
+        self.regressorbox.pack_start(self.widthFrame, False, False, 0)
+        self.regressorbox.pack_start(self.correlationFrame, False, False, 0)
+        
     def initializeSerial(self, widget, data):
         global LOCATIONS, RATE
         for name in LOCATIONS:
@@ -147,6 +175,12 @@ class guiFramework(object):
         self.speed=self.speedEntry.get_text()
         if not self.speed:
             self.speed='No speed was entered for this run.'
+        
+    def getWidthText(self, widget, data):
+        try:
+            self.width=float(self.widthEntry.get_text())
+        except:
+            self.width=12.0
     
     def startLogging(self, widget, data):
         self.logger.setLevel(logging.INFO)
@@ -192,11 +226,11 @@ class linearRegressor(object):
     def update(self, xdata, ydata):
         self.xdata.append(xdata)
         self.ydata.append(ydata)
-        self.N=len(ydata)
-        if self.min < len(ydata):
+        self.N=len(self.ydata)
+        if self.min < len(self.ydata):
             self.regress()
             self.QC()
-            if self.max < len(ydata):
+            if self.max < len(self.ydata):
                 self.xdata.reverse()
                 self.ydata.reverse()
                 self.xdata.pop()
@@ -228,7 +262,7 @@ class linearRegressor(object):
         average=self.ysum/self.N
         for i in range(self.N):
             Yi=(self.xdata[i]*self.slope+self.intercept)
-            self.TSS+=(average-ydata[i])**2
+            self.TSS+=(average-self.ydata[i])**2
             self.SSE+=(self.ydata[i]-Yi)**2
         self.rr=1-self.SSE/self.TSS
 
@@ -244,6 +278,14 @@ class gtkThread(threading.Thread):
         
     def update_label(self, weight):
         self.label.set_text(weight)
+        gui.line.update(self.average, self.elapsed)
+        gui.line.QC()
+        slope=gui.line.slope
+        rr=gui.line.rr
+        gui.getWidthText('','')
+        slope=slope*60./200.*gui.width*4882.26
+        gui.wetLabel.set_text(str(slope))
+        gui.correlationLabel.set_text(str(rr))
         return False
         
     def run(self):
@@ -270,47 +312,10 @@ class gtkThread(threading.Thread):
                 self.Serial.flushInput()
                 sleep(.05)
                 i+=1
-            gobject.idle_add(self.update_label,str(average))
             elapsed=float(time.time())-self.gui.basetime
-            gui.logger.info(str(elapsed)[:4] + ' ' + str(average))
-            
-class gtkRegressionThread(threading.Thread):
-    def __init__(self, gui):
-        super(gtkRegressionThread, self).__init__()
-        self.gui=gui
-        self.label=gui.weightLabel
-        self.quit=False
-        
-    def update_label(self, weight):
-        self.label.set_text(weight)
-        return False
-        
-    def run(self):
-        while not self.quit:
-            data_in=''
-            char=''
-            weight=''
-            average=0.0
-            self.Serial.flushInput()
-            i=0
-            regex='[0-9]+(\.[0-9][0-9][0-9]?)?'
-            while i<20:
-                weight=''
-                while not weight:
-                    data_in=self.Serial.readline()
-                    a=re.split(' ', data_in)
-                    for string in a:
-                        try:
-                            m=re.match(regex, string)
-                            weight=float(m.group())
-                        except:
-                            char=string
-                average+=weight/20.0
-                self.Serial.flushInput()
-                sleep(.05)
-                i+=1
+            self.average=average
+            self.elapsed=elapsed
             gobject.idle_add(self.update_label,str(average))
-            elapsed=float(time.time())-self.gui.basetime
             gui.logger.info(str(elapsed)[:4] + ' ' + str(average))
         
 
